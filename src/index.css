@@ -1,0 +1,107 @@
+:root {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Theme tokens (dark defaults) */
+  --color-bg: #0f0f12;
+  --color-surface: #16161c;
+  --color-surface-subtle: #1b1b23;
+  --color-surface-muted: #1f1f29;
+  --color-border-subtle: #2b2b3a;
+  --color-border-strong: #3a3a4c;
+  --color-divider: rgba(15, 23, 42, 0.45);
+
+  --color-text-primary: #f9fafb;
+  --color-text-muted: #a5acba;
+  --color-text-soft: #9ca3af;
+
+  --color-accent: #f973b7;
+  --color-accent-soft: #ffd6ec;
+
+  --shadow-soft: 0 1px 3px rgba(15, 23, 42, 0.9);
+  --shadow-modal: 0 18px 40px rgba(15, 23, 42, 0.8);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  color: #111827;
+  background-color: #f3f4f6;
+
+  --color-bg: #f3f4f6;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f9fafb;
+  --color-surface-muted: #eef0f5;
+  --color-border-subtle: #e5e7eb;
+  --color-border-strong: #d1d5db;
+  --color-divider: rgba(148, 163, 184, 0.35);
+
+  --color-text-primary: #111827;
+  --color-text-muted: #4b5563;
+  --color-text-soft: #6b7280;
+
+  --color-accent: #ec4899;
+  --color-accent-soft: #fdf2f8;
+
+  --shadow-soft: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-modal: 0 18px 40px rgba(15, 23, 42, 0.18);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+:root[data-theme='dark'] body {
+  background-color: var(--color-bg);
+}
+
+:root[data-theme='light'] body {
+  background-color: var(--color-bg);
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 1.5rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 1rem 0.75rem;
+  }
+}
