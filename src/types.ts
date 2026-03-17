@@ -13,6 +13,18 @@ export type SortAlgorithmId =
   | 'selection'
   | 'shell'
   | 'cocktail'
+  | 'tree'
+  | 'tim'
+  | 'blockMerge'
+  | 'intro'
+  | 'pdq'
+  | 'radix'
+  | 'counting'
+  | 'sleep'
+  | 'gravity'
+  | 'stooge'
+  | 'bogo'
+  | 'bogobogo'
 
 export type PresetImage = {
   id: string

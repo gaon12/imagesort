@@ -7,6 +7,18 @@ import { generateInsertionSortSteps } from '../insertionSort'
 import { generateSelectionSortSteps } from '../selectionSort'
 import { generateShellSortSteps } from '../shellSort'
 import { generateCocktailSortSteps } from '../cocktailSort'
+import { generateTreeSortSteps } from '../treeSort'
+import { generateTimSortSteps } from '../timSort'
+import { generateBlockMergeSortSteps } from '../blockMergeSort'
+import { generateIntroSortSteps } from '../introSort'
+import { generatePdqSortSteps } from '../pdqSort'
+import { generateRadixSortSteps } from '../radixSort'
+import { generateCountingSortSteps } from '../countingSort'
+import { generateSleepSortSteps } from '../sleepSort'
+import { generateGravitySortSteps } from '../gravitySort'
+import { generateStoogeSortSteps } from '../stoogeSort'
+import { generateBogoSortSteps } from '../bogoSort'
+import { generateBogoBogSortSteps } from '../bogoBogSort'
 import type { Strip, SortStep } from '../types'
 
 // Helper: create a strip array from an array of originalIndex values
@@ -44,6 +56,22 @@ const ALGORITHMS: Array<{ name: string; fn: SortFn }> = [
   { name: 'Selection Sort', fn: generateSelectionSortSteps },
   { name: 'Shell Sort', fn: generateShellSortSteps },
   { name: 'Cocktail Sort', fn: generateCocktailSortSteps },
+  { name: 'Tree Sort', fn: generateTreeSortSteps },
+  { name: 'Tim Sort', fn: generateTimSortSteps },
+  { name: 'Block Merge Sort', fn: generateBlockMergeSortSteps },
+  { name: 'Intro Sort', fn: generateIntroSortSteps },
+  { name: 'PDQ Sort', fn: generatePdqSortSteps },
+  { name: 'Radix Sort', fn: generateRadixSortSteps },
+  { name: 'Counting Sort', fn: generateCountingSortSteps },
+  { name: 'Sleep Sort', fn: generateSleepSortSteps },
+  { name: 'Gravity Sort', fn: generateGravitySortSteps },
+  { name: 'Stooge Sort', fn: generateStoogeSortSteps },
+]
+
+// Probabilistic algorithms (may not fully sort within step limit)
+const PROBABILISTIC_ALGORITHMS: Array<{ name: string; fn: SortFn }> = [
+  { name: 'Bogo Sort', fn: generateBogoSortSteps },
+  { name: 'BogoBogo Sort', fn: generateBogoBogSortSteps },
 ]
 
 describe('Sorting Algorithms - Correctness', () => {
@@ -130,8 +158,37 @@ describe('QuickSort Pivot Strategies', () => {
   })
 })
 
+describe('Probabilistic Algorithms - Structure', () => {
+  for (const { name, fn } of PROBABILISTIC_ALGORITHMS) {
+    describe(name, () => {
+      it('returns steps with valid structure', () => {
+        const input = makeStrips([2, 0, 1])
+        const steps = fn(input)
+        expect(steps.length).toBeGreaterThan(0)
+        for (const step of steps) {
+          expect(step).toHaveProperty('array')
+          expect(step).toHaveProperty('comparisons')
+          expect(step).toHaveProperty('swaps')
+          expect(Array.isArray(step.array)).toBe(true)
+        }
+      })
+
+      it('handles empty array', () => {
+        const steps = fn([])
+        expect(steps.length).toBe(0)
+      })
+
+      it('handles single element', () => {
+        const input = makeStrips([0])
+        const steps = fn(input)
+        expect(isSorted(getFinalState(steps, input))).toBe(true)
+      })
+    })
+  }
+})
+
 describe('Edge Cases', () => {
-  it('empty array returns no steps for all algorithms', () => {
+  it('empty array returns no steps for all deterministic algorithms', () => {
     for (const { fn } of ALGORITHMS) {
       const steps = fn([])
       expect(steps.length).toBe(0)

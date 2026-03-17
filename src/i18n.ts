@@ -112,6 +112,54 @@ const resources = {
             subtitle: '버블 정렬을 양방향으로 확장한 방식으로, 왼쪽·오른쪽으로 번갈아가며 정렬해요.',
             traits: ['안정 정렬', '제자리', '앞뒤 양방향 스캔'],
           },
+          tree: {
+            subtitle: '이진 탐색 트리(BST)에 모든 원소를 삽입한 뒤, 중위 순회로 정렬된 순서를 얻어요.',
+            traits: ['불안정 정렬(보통)', '제자리 아님', '트리 편향 시 O(n²) 가능'],
+          },
+          tim: {
+            subtitle: 'Python과 Java의 기본 정렬 알고리즘으로, 삽입 정렬로 소규모 런을 정렬한 뒤 병합 정렬로 합쳐요.',
+            traits: ['안정 정렬', '제자리 아님', '실제 데이터에 최적화'],
+          },
+          blockMerge: {
+            subtitle: '추가 메모리 없이 블록 단위로 병합하는 제자리 병합 정렬이에요. WikiSort라고도 불려요.',
+            traits: ['안정 정렬', '제자리', '복잡한 구현'],
+          },
+          intro: {
+            subtitle: '퀵 정렬로 시작해 재귀 깊이 초과 시 힙 정렬, 소규모 구간에는 삽입 정렬로 전환하는 하이브리드예요.',
+            traits: ['불안정 정렬', '제자리', '최악의 경우 방지'],
+          },
+          pdq: {
+            subtitle: 'Rust 표준 라이브러리에서 사용되는 고급 정렬로, 패턴 감지와 피벗 선택 최적화로 인트로정렬을 개선했어요.',
+            traits: ['불안정 정렬', '제자리', '실용적 최고 성능'],
+          },
+          radix: {
+            subtitle: '원소를 직접 비교하지 않고 자릿수별로 안정 정렬을 반복해요. 정수형 데이터에 매우 빠를 수 있어요.',
+            traits: ['안정 정렬', '제자리 아님', '비교 기반 아님'],
+          },
+          counting: {
+            subtitle: '각 값의 등장 횟수를 세어 정렬된 위치를 계산해요. 값의 범위가 작을 때 매우 빠르지만, 시각적으로 직접적이에요.',
+            traits: ['안정 정렬', '제자리 아님', '비교 기반 아님'],
+          },
+          sleep: {
+            subtitle: '각 원소가 자신의 값에 비례하는 시간 동안 잠들었다가 깨어나 결과에 삽입돼요. 동시성을 이용한 독특한 알고리즘이에요.',
+            traits: ['비교 기반 아님', '병렬 실행 전용', '교육용'],
+          },
+          gravity: {
+            subtitle: '구슬(bead)을 막대에 꿰어 중력으로 자동 정렬하는 아이디어예요. 물리적 직관이 돋보이는 알고리즘이에요.',
+            traits: ['비교 기반 아님', '제자리 아님', '물리 시뮬레이션'],
+          },
+          stooge: {
+            subtitle: '배열을 3등분해 앞 2/3, 뒤 2/3, 앞 2/3 순으로 재귀 정렬해요. 이론적으로만 흥미롭고 실용성은 없어요.',
+            traits: ['불안정 정렬', '제자리', 'O(n^2.7) 매우 비효율'],
+          },
+          bogo: {
+            subtitle: '배열이 정렬될 때까지 무작위로 섞기를 반복해요. 평균 O(n·n!)으로 실용성이 전혀 없는 유머 알고리즘이에요.',
+            traits: ['불안정 정렬', '제자리', '최악: 무한'],
+          },
+          bogobogo: {
+            subtitle: '접두사가 정렬될 때마다 접두사 길이를 늘리고, 아니면 전체를 다시 섞어요. 보고 정렬보다도 더 느린 궁극의 비효율 알고리즘이에요.',
+            traits: ['불안정 정렬', '제자리', '극소 입력 권장'],
+          },
         },
         steps: [
           '먼저, 화면에 보이는 이미지를 여러 개의 얇은 조각으로 나누고, 이 조각들을 무작위로 섞어서 "정렬이 필요"한 상태로 만들어 둡니다.',
@@ -257,6 +305,54 @@ const resources = {
           cocktail: {
             subtitle: 'Bidirectional extension of bubble sort, scanning left and right alternately.',
             traits: ['Stable sort', 'In-place', 'Bidirectional scan'],
+          },
+          tree: {
+            subtitle: 'Inserts all elements into a Binary Search Tree (BST), then extracts them via in-order traversal for a sorted sequence.',
+            traits: ['Unstable (usually)', 'Not in-place', 'O(n²) if tree is skewed'],
+          },
+          tim: {
+            subtitle: "Python's and Java's default sort. Sorts small runs with insertion sort, then merges them using merge sort.",
+            traits: ['Stable sort', 'Not in-place', 'Optimized for real data'],
+          },
+          blockMerge: {
+            subtitle: 'In-place merge sort using block-based merging with no extra memory. Also known as WikiSort.',
+            traits: ['Stable sort', 'In-place', 'Complex implementation'],
+          },
+          intro: {
+            subtitle: 'Starts with quicksort, falls back to heapsort when recursion depth is exceeded, uses insertion sort for small ranges.',
+            traits: ['Unstable sort', 'In-place', 'Worst-case prevention'],
+          },
+          pdq: {
+            subtitle: "Used in Rust's standard library. Improves introsort with pattern detection and optimized pivot selection.",
+            traits: ['Unstable sort', 'In-place', 'Best practical performance'],
+          },
+          radix: {
+            subtitle: 'Sorts by each digit position without comparing elements directly. Can be very fast for integer data.',
+            traits: ['Stable sort', 'Not in-place', 'Non-comparison based'],
+          },
+          counting: {
+            subtitle: 'Counts occurrences of each value and computes sorted positions. Very fast when value range (k) is small.',
+            traits: ['Stable sort', 'Not in-place', 'Non-comparison based'],
+          },
+          sleep: {
+            subtitle: 'Each element "sleeps" for a duration proportional to its value, then wakes up and inserts itself into the result.',
+            traits: ['Non-comparison based', 'Concurrent only', 'Educational'],
+          },
+          gravity: {
+            subtitle: 'Simulates beads threaded on rods that fall under gravity to sort automatically. A physically intuitive algorithm.',
+            traits: ['Non-comparison based', 'Not in-place', 'Physical simulation'],
+          },
+          stooge: {
+            subtitle: 'Recursively sorts the first 2/3, last 2/3, and first 2/3 of the array again. Theoretically interesting but impractical.',
+            traits: ['Unstable sort', 'In-place', 'O(n^2.7) very slow'],
+          },
+          bogo: {
+            subtitle: 'Repeatedly shuffles the array at random until it happens to be sorted. Average O(n·n!) — a humor algorithm with no practical use.',
+            traits: ['Unstable sort', 'In-place', 'Worst case: infinite'],
+          },
+          bogobogo: {
+            subtitle: 'Extends bogo sort by recursively checking sorted prefixes. Even slower than bogo sort — the ultimate inefficiency.',
+            traits: ['Unstable sort', 'In-place', 'Tiny inputs recommended'],
           },
         },
         steps: [
