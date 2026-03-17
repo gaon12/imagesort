@@ -8,7 +8,8 @@ export const useAudio = (soundEnabled: boolean, activeAlgorithm: SortAlgorithm) 
     if (!soundEnabled) return null
     if (typeof window === 'undefined') return null
     if (!audioContextRef.current) {
-      const AC = (window as any).webkitAudioContext ?? AudioContext
+      type WindowWithWebkit = typeof window & { webkitAudioContext?: typeof AudioContext }
+      const AC = (window as WindowWithWebkit).webkitAudioContext ?? AudioContext
       audioContextRef.current = new AC()
     }
     if (audioContextRef.current && audioContextRef.current.state === 'suspended') {

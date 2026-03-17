@@ -33,3 +33,5 @@ export type AlgorithmDetail = {
   subtitle: string
   traits: string[]
 }
+
+export type QuickSortPivot = 'first' | 'last' | 'middle' | 'random'

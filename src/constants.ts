@@ -31,6 +31,8 @@ export const SORT_ALGORITHMS: SortAlgorithm[] = [
   { id: 'cocktail', name: 'Cocktail Shaker Sort', description: '양방향 버블 정렬', complexity: 'O(n²)', tone: 'soft', generateSteps: generateCocktailSortSteps },
 ]
 
+export const QUICK_SORT_PIVOT_STORAGE_KEY = 'image-sort-studio-pivot'
+
 export const ALGORITHM_DETAILS: Record<SortAlgorithmId, AlgorithmDetail> = {
   quick: {
     subtitle: '분할 정복 기반으로 평균적으로 매우 빠르지만, 피벗 선택에 따라 최악의 경우 O(n²)가 될 수 있어요.',

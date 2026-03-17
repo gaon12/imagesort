@@ -15,6 +15,11 @@ const resources = {
         start: '정렬 시작',
         pause: '일시정지',
         continue: '계속',
+        stepJump: '스텝 이동',
+        compareMode: '비교 모드',
+        exportResult: '결과 내보내기',
+        copyLink: '링크 복사',
+        copied: '복사됨!',
       },
       settings: {
         title: '설정',
@@ -31,6 +36,11 @@ const resources = {
         sound: '소리',
         soundEnabled: '효과음 켜기',
         language: '언어',
+        pivotStrategy: '피벗 전략',
+        pivotFirst: '첫 번째',
+        pivotLast: '마지막',
+        pivotMiddle: '중간값',
+        pivotRandom: '랜덤',
       },
       tutorial: {
         title: '튜토리얼',
@@ -151,6 +161,11 @@ const resources = {
         start: 'Start',
         pause: 'Pause',
         continue: 'Continue',
+        stepJump: 'Jump to Step',
+        compareMode: 'Compare Mode',
+        exportResult: 'Export Result',
+        copyLink: 'Copy Link',
+        copied: 'Copied!',
       },
       settings: {
         title: 'Settings',
@@ -167,6 +182,11 @@ const resources = {
         sound: 'Sound',
         soundEnabled: 'Enable Sound',
         language: 'Language',
+        pivotStrategy: 'Pivot Strategy',
+        pivotFirst: 'First',
+        pivotLast: 'Last',
+        pivotMiddle: 'Median',
+        pivotRandom: 'Random',
       },
       tutorial: {
         title: 'Tutorial',
@@ -278,7 +298,7 @@ const resources = {
 
 void i18n.use(initReactI18next).init({
   resources,
-  lng: 'ko',
+  lng: (typeof navigator !== 'undefined' && navigator.language?.startsWith('en')) ? 'en' : 'ko',
   fallbackLng: 'ko',
   interpolation: {
     escapeValue: false,

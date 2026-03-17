@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import './App.css'
-import type { Strip, SortStep, ImageSourceType, SortAlgorithmId, Theme } from './types'
-import { PRESET_IMAGES, SORT_ALGORITHMS, THEME_STORAGE_KEY, TUTORIAL_STORAGE_KEY } from './constants'
+import type { Strip, SortStep, ImageSourceType, SortAlgorithmId, QuickSortPivot, Theme } from './types'
+import { PRESET_IMAGES, SORT_ALGORITHMS, THEME_STORAGE_KEY, TUTORIAL_STORAGE_KEY, QUICK_SORT_PIVOT_STORAGE_KEY } from './constants'
 import { createShuffledStrips, formatMilliseconds, getInitialTheme } from './utils'
 import { useAudio } from './hooks/useAudio'
 import { TutorialModal } from './components/TutorialModal'
@@ -10,10 +10,23 @@ import { AlgorithmModal } from './components/AlgorithmModal'
 import { SettingsModal } from './components/SettingsModal'
 import { ResultModal } from './components/ResultModal'
 import { ErrorModal } from './components/ErrorModal'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { StripVisualization } from './components/StripVisualization'
+import { generateQuickSortSteps } from './algorithms/quickSort'
+
+// Helper to get initial pivot strategy
+function getInitialPivot(): QuickSortPivot {
+  try {
+    const stored = window.localStorage.getItem(QUICK_SORT_PIVOT_STORAGE_KEY)
+    if (stored === 'first' || stored === 'last' || stored === 'middle' || stored === 'random') return stored
+  } catch { /* ignore */ }
+  return 'last'
+}
 
 function App() {
   const { t } = useTranslation()
 
+  // --- Core state ---
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [imageSourceType, setImageSourceType] = useState<ImageSourceType>('preset')
   const [imageSrc, setImageSrc] = useState<string | null>(PRESET_IMAGES[0]?.url ?? null)
@@ -22,23 +35,36 @@ function App() {
   const [imageUrlInput, setImageUrlInput] = useState('')
   const [stripCount, setStripCount] = useState<number>(64)
   const [algorithmId, setAlgorithmId] = useState<SortAlgorithmId>('quick')
+  const [pivotStrategy, setPivotStrategy] = useState<QuickSortPivot>(getInitialPivot)
   const [stepDelay, setStepDelay] = useState<number>(28)
+  const [soundEnabled, setSoundEnabled] = useState(true)
+
+  // --- Visualization state ---
   const [strips, setStrips] = useState<Strip[]>([])
   const [sortSteps, setSortSteps] = useState<SortStep[]>([])
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(-1)
   const [isSorting, setIsSorting] = useState(false)
   const [hasPrepared, setHasPrepared] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  const [isPreparing, setIsPreparing] = useState(false)
   const [elapsedMilliseconds, setElapsedMilliseconds] = useState(0)
   const sortStartTimeRef = useRef<number | null>(null)
   const uploadedImageUrlRef = useRef<string | null>(null)
+
+  // --- Compare mode state ---
+  const [compareMode, setCompareMode] = useState(false)
+  const [compareAlgorithmId, setCompareAlgorithmId] = useState<SortAlgorithmId>('bubble')
+  const [compareStrips, setCompareStrips] = useState<Strip[]>([])
+  const [compareSortSteps, setCompareSortSteps] = useState<SortStep[]>([])
+  const [compareStepIndex, setCompareStepIndex] = useState<number>(-1)
+
+  // --- UI state ---
   const [showResultModal, setShowResultModal] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [showTutorialModal, setShowTutorialModal] = useState(false)
   const [showAlgorithmModal, setShowAlgorithmModal] = useState(false)
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const [soundEnabled, setSoundEnabled] = useState(true)
   const [isViewportLandscape, setIsViewportLandscape] = useState<boolean>(() => {
     if (typeof window === 'undefined') return true
     return window.innerWidth >= window.innerHeight
@@ -49,13 +75,20 @@ function App() {
     [algorithmId]
   )
 
+  const compareAlgorithm = useMemo(
+    () => SORT_ALGORITHMS.find((a) => a.id === compareAlgorithmId) ?? SORT_ALGORITHMS[1],
+    [compareAlgorithmId]
+  )
+
   const { playStepSound, playCompleteSound } = useAudio(soundEnabled, activeAlgorithm)
 
   const currentStep = currentStepIndex >= 0 ? sortSteps[currentStepIndex] : null
+  const compareStep = compareStepIndex >= 0 ? compareSortSteps[compareStepIndex] : null
   const totalExpectedSteps = sortSteps.length
   const totalExpectedComparisons = sortSteps[sortSteps.length - 1]?.comparisons ?? 0
   const totalExpectedSwaps = sortSteps[sortSteps.length - 1]?.swaps ?? 0
 
+  // --- Effects ---
   useEffect(() => {
     if (typeof window === 'undefined') return
     const handleResize = () => {
@@ -65,7 +98,6 @@ function App() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // 컴포넌트 언마운트 시 업로드된 이미지 URL 정리
   useEffect(() => {
     return () => {
       if (uploadedImageUrlRef.current) {
@@ -82,9 +114,7 @@ function App() {
         setShowTutorialModal(true)
         window.localStorage.setItem(TUTORIAL_STORAGE_KEY, 'true')
       }
-    } catch {
-      // ignore storage errors
-    }
+    } catch { /* ignore */ }
   }, [])
 
   useEffect(() => {
@@ -94,11 +124,16 @@ function App() {
   }, [theme])
 
   useEffect(() => {
+    try {
+      window.localStorage.setItem(QUICK_SORT_PIVOT_STORAGE_KEY, pivotStrategy)
+    } catch { /* ignore */ }
+  }, [pivotStrategy])
+
+  useEffect(() => {
     if (!imageSrc || typeof Image === 'undefined') {
       setImageSize(null)
       return
     }
-
     const img = new Image()
     img.onload = () => {
       if (img.naturalWidth > 0 && img.naturalHeight > 0) {
@@ -123,27 +158,26 @@ function App() {
     if (!imageSize) return
     const { width, height } = imageSize
     if (!width || !height) return
-
     const aspect = width / height
     const base = 48
     const factor = Math.min(Math.max(aspect, 0.5), 2)
     const suggested = Math.round(base * factor)
     const clamped = Math.min(Math.max(suggested, 8), 160)
-
     setStripCount(clamped)
   }, [imageSize])
 
+  // --- Main animation effect ---
   useEffect(() => {
     if (!sortSteps.length) {
       if (isSorting) setIsSorting(false)
       return
     }
+    if (!isSorting || isPaused) return
 
-    if (!isSorting || isPaused) {
-      return
-    }
+    const mainDone = currentStepIndex >= sortSteps.length - 1
+    const compareDone = !compareMode || compareStepIndex >= compareSortSteps.length - 1
 
-    if (currentStepIndex >= sortSteps.length - 1) {
+    if (mainDone && compareDone) {
       setIsSorting(false)
       setIsPaused(false)
       setShowResultModal(true)
@@ -152,85 +186,136 @@ function App() {
     }
 
     const timer = window.setTimeout(() => {
-      const nextIndex = currentStepIndex + 1
-      const nextStep = sortSteps[nextIndex]
-      setCurrentStepIndex(nextIndex)
-      setStrips(nextStep.array)
-
-      if (sortStartTimeRef.current != null) {
-        setElapsedMilliseconds(performance.now() - sortStartTimeRef.current)
+      // Advance main
+      if (!mainDone) {
+        const nextIndex = currentStepIndex + 1
+        const nextStep = sortSteps[nextIndex]
+        setCurrentStepIndex(nextIndex)
+        setStrips(nextStep.array)
+        if (sortStartTimeRef.current != null) {
+          setElapsedMilliseconds(performance.now() - sortStartTimeRef.current)
+        }
+        if (nextStep.activeIndices) {
+          const idx = nextStep.activeIndices[1] ?? nextStep.activeIndices[0]
+          const ratio = strips.length > 1 ? idx / (strips.length - 1) : 0
+          playStepSound(ratio)
+        }
       }
-
-      if (nextStep.activeIndices) {
-        const idx = nextStep.activeIndices[1] ?? nextStep.activeIndices[0]
-        const ratio = strips.length > 1 ? idx / (strips.length - 1) : 0
-        playStepSound(ratio)
+      // Advance compare
+      if (compareMode && !compareDone) {
+        const nextCompareIndex = compareStepIndex + 1
+        const nextCompareStep = compareSortSteps[nextCompareIndex]
+        setCompareStepIndex(nextCompareIndex)
+        setCompareStrips(nextCompareStep.array)
       }
     }, stepDelay)
 
     return () => window.clearTimeout(timer)
-  }, [currentStepIndex, isSorting, isPaused, sortSteps, stepDelay, strips.length, playStepSound, playCompleteSound])
+  }, [
+    currentStepIndex, compareStepIndex,
+    isSorting, isPaused,
+    sortSteps, compareSortSteps,
+    compareMode, stepDelay,
+    strips.length, playStepSound, playCompleteSound,
+  ])
 
-  const handlePrepare = () => {
-    if (!imageSrc) return
-    const count = Math.min(Math.max(stripCount, 8), 160)
-    const initial = createShuffledStrips(count)
-    setStrips(initial)
+  // --- Step jump handler ---
+  const handleStepJump = useCallback((stepIndex: number) => {
+    if (!hasPrepared || isSorting) return
+    const clamped = Math.min(Math.max(stepIndex, 0), sortSteps.length - 1)
+    setCurrentStepIndex(clamped)
+    setStrips(sortSteps[clamped].array)
+    if (compareMode && compareSortSteps.length > 0) {
+      const compareClamped = Math.min(clamped, compareSortSteps.length - 1)
+      setCompareStepIndex(compareClamped)
+      setCompareStrips(compareSortSteps[compareClamped].array)
+    }
+  }, [hasPrepared, isSorting, sortSteps, compareSortSteps, compareMode])
 
-    const rawSteps = activeAlgorithm.generateSteps(initial)
-
-    // 메모리 절약을 위해 배열 참조를 공유
+  const normalizeSteps = (rawSteps: SortStep[], initial: Strip[]): SortStep[] => {
     const normalizedSteps: SortStep[] = []
     let lastArray = initial
     let lastComparisons = 0
     let lastSwaps = 0
-
     for (const step of rawSteps) {
       const nextArray =
         Array.isArray(step.array) && step.array.length === initial.length ? step.array : lastArray
-
-      normalizedSteps.push({
-        ...step,
-        array: nextArray,
-      })
-
+      normalizedSteps.push({ ...step, array: nextArray })
       lastArray = nextArray
       lastComparisons = step.comparisons
       lastSwaps = step.swaps
     }
-
-    const finalArray = lastArray
-    if (finalArray.length > 0) {
+    if (lastArray.length > 0) {
       normalizedSteps.push({
-        array: finalArray,
+        array: lastArray,
         activeIndices: null,
         comparisons: lastComparisons,
         swaps: lastSwaps,
       })
     }
-
-    setSortSteps(normalizedSteps)
-    setCurrentStepIndex(-1)
-    setElapsedMilliseconds(0)
-    setIsSorting(false)
-    setIsPaused(false)
-    sortStartTimeRef.current = null
-    setHasPrepared(true)
-    setShowResultModal(false)
+    return normalizedSteps
   }
+
+  // --- Prepare handler (async with loading state) ---
+  const handlePrepare = useCallback(() => {
+    if (!imageSrc) return
+    const count = Math.min(Math.max(stripCount, 8), 160)
+    const initial = createShuffledStrips(count)
+    setStrips(initial)
+    setIsPreparing(true)
+
+    // Async step computation to avoid blocking UI
+    setTimeout(() => {
+      try {
+        // Generate main algorithm steps
+        const generateMainSteps = algorithmId === 'quick'
+          ? (items: Strip[]) => generateQuickSortSteps(items, pivotStrategy)
+          : activeAlgorithm.generateSteps
+
+        const rawSteps = generateMainSteps(initial)
+        const normalizedSteps = normalizeSteps(rawSteps, initial)
+
+        setSortSteps(normalizedSteps)
+
+        // Generate compare algorithm steps if in compare mode
+        if (compareMode) {
+          const generateCompareSteps = compareAlgorithmId === 'quick'
+            ? (items: Strip[]) => generateQuickSortSteps(items, pivotStrategy)
+            : compareAlgorithm.generateSteps
+          const compareRaw = generateCompareSteps(initial)
+          const compareNormalized = normalizeSteps(compareRaw, initial)
+          setCompareSortSteps(compareNormalized)
+          setCompareStrips(initial)
+          setCompareStepIndex(-1)
+        }
+
+        setCurrentStepIndex(-1)
+        setElapsedMilliseconds(0)
+        setIsSorting(false)
+        setIsPaused(false)
+        sortStartTimeRef.current = null
+        setHasPrepared(true)
+        setShowResultModal(false)
+      } finally {
+        setIsPreparing(false)
+      }
+    }, 0)
+  }, [imageSrc, stripCount, algorithmId, pivotStrategy, activeAlgorithm, compareMode, compareAlgorithmId, compareAlgorithm])
 
   const handleStartSorting = () => {
     if (!hasPrepared || !sortSteps.length) return
-
     if (!isSorting) {
       sortStartTimeRef.current = performance.now()
       setElapsedMilliseconds(0)
       setCurrentStepIndex(-1)
+      if (compareMode) {
+        setCompareStepIndex(-1)
+        if (compareSortSteps.length > 0) setCompareStrips(compareSortSteps[0]?.array ?? compareStrips)
+      }
       setIsPaused(false)
       setIsSorting(true)
       return
     }
-
     if (!isPaused) {
       if (sortStartTimeRef.current != null) {
         setElapsedMilliseconds(performance.now() - sortStartTimeRef.current)
@@ -239,13 +324,11 @@ function App() {
       setIsPaused(true)
       return
     }
-
     sortStartTimeRef.current = performance.now() - elapsedMilliseconds
     setIsPaused(false)
   }
 
   const handleReset = () => {
-    // 메모리 해제를 위해 명시적으로 빈 배열로 설정
     setStrips([])
     setSortSteps([])
     setCurrentStepIndex(-1)
@@ -255,6 +338,11 @@ function App() {
     sortStartTimeRef.current = null
     setHasPrepared(false)
     setShowResultModal(false)
+    if (compareMode) {
+      setCompareStrips([])
+      setCompareSortSteps([])
+      setCompareStepIndex(-1)
+    }
   }
 
   const handleStopSorting = () => {
@@ -265,12 +353,12 @@ function App() {
     setElapsedMilliseconds(0)
     setCurrentStepIndex(-1)
     setShowResultModal(false)
-
-    if (sortSteps.length > 0) {
-      const first = sortSteps[0]
-      if (first && Array.isArray(first.array)) {
-        setStrips(first.array)
-      }
+    if (sortSteps.length > 0 && sortSteps[0]?.array) {
+      setStrips(sortSteps[0].array)
+    }
+    if (compareMode && compareSortSteps.length > 0 && compareSortSteps[0]?.array) {
+      setCompareStepIndex(-1)
+      setCompareStrips(compareSortSteps[0].array)
     }
   }
 
@@ -286,19 +374,15 @@ function App() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-
     if (!file.type.startsWith('image/')) {
       setErrorMessage(t('error.imageFileOnly'))
       setShowErrorModal(true)
       event.target.value = ''
       return
     }
-
-    // 이전 업로드 URL 정리
     if (uploadedImageUrlRef.current) {
       URL.revokeObjectURL(uploadedImageUrlRef.current)
     }
-
     const url = URL.createObjectURL(file)
     uploadedImageUrlRef.current = url
     setImageSourceType('upload')
@@ -310,15 +394,11 @@ function App() {
   const handleApplyUrl = () => {
     const url = imageUrlInput.trim()
     if (!url) return
-
-    try {
-      new URL(url)
-    } catch {
+    try { new URL(url) } catch {
       setErrorMessage(t('error.invalidUrlFormat'))
       setShowErrorModal(true)
       return
     }
-
     setImageSourceType('url')
     setImageSrc(url)
     setSelectedPresetId('')
@@ -331,14 +411,18 @@ function App() {
   }
 
   const activeIndices = currentStep?.activeIndices ?? null
+  const compareActiveIndices = compareStep?.activeIndices ?? null
+
+  const mainVisualizationStrips = strips
+  const compareVisualizationStrips = compareMode ? (compareStrips.length > 0 ? compareStrips : strips) : []
 
   return (
     <div className="app-root">
       <header className="top-bar">
         <div className="top-bar-left">
           <div className="app-title-block">
-            <h1 className="app-title">Image Sort Studio</h1>
-            <p className="app-subtitle">다양한 정렬 알고리즘을 시각화해요.</p>
+            <h1 className="app-title">{t('app.title')}</h1>
+            <p className="app-subtitle">{t('app.subtitle')}</p>
           </div>
           <select
             value={algorithmId}
@@ -352,31 +436,54 @@ function App() {
               </option>
             ))}
           </select>
+          {compareMode && (
+            <select
+              value={compareAlgorithmId}
+              onChange={(e) => { setCompareAlgorithmId(e.target.value as SortAlgorithmId); handleReset() }}
+              className="algorithm-select algorithm-select-compare"
+              disabled={isSorting}
+            >
+              {SORT_ALGORITHMS.map((algo) => (
+                <option key={algo.id} value={algo.id}>
+                  {algo.name} - {algo.complexity}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             type="button"
             className="algorithm-help-button"
             onClick={() => setShowAlgorithmModal(true)}
             disabled={!activeAlgorithm}
           >
-            알고리즘 설명
+            {t('algorithm.help')}
           </button>
         </div>
 
         <div className="top-bar-center">
           {imageSrc && (
             <div className="status-info">
-              <span className="status-label">Progress:</span>
+              <span className="status-label">{t('status.progress')}:</span>
               <span className="status-value">
                 {currentStepIndex < 0 ? 0 : currentStepIndex + 1}/{totalExpectedSteps || 0}
               </span>
               <span className="status-divider">•</span>
-              <span className="status-label">Time:</span>
+              <span className="status-label">{t('status.time')}:</span>
               <span className="status-value">{formatMilliseconds(elapsedMilliseconds)}</span>
             </div>
           )}
         </div>
 
         <div className="top-bar-right">
+          <button
+            type="button"
+            className={`icon-button ${compareMode ? 'icon-button-active' : ''}`}
+            onClick={() => { setCompareMode(!compareMode); handleReset() }}
+            disabled={isSorting}
+            title={t('controls.compareMode')}
+          >
+            ⚡
+          </button>
           <button
             type="button"
             className="icon-button"
@@ -395,59 +502,64 @@ function App() {
         </div>
       </header>
 
-      <main className="main-stage">
-        {imageSrc ? (
-          <div
-            className="image-frame"
-            style={
-              imageSize
-                ? isViewportLandscape
-                  ? {
-                      aspectRatio: imageSize.width / imageSize.height,
-                      height: '100%',
-                      maxWidth: '100%',
-                    }
-                  : {
-                      aspectRatio: imageSize.width / imageSize.height,
-                      width: '100%',
-                      maxHeight: '100%',
-                    }
-                : undefined
-            }
-          >
-            {strips.length === 0 && (
-              <img src={imageSrc} alt="Selected" className="preview-image" />
-            )}
-
-            {strips.length > 0 && (
-              <div className="strip-container">
-                {strips.map((strip, index) => {
-                  const isActive =
-                    activeIndices?.[0] === index || activeIndices?.[1] === index
-
-                  return (
-                    <div
-                      key={strip.id}
-                      className={isActive ? 'image-strip image-strip-active' : 'image-strip'}
-                      style={{
-                        width: `${100 / strips.length}%`,
-                        backgroundImage: `url(${imageSrc})`,
-                        backgroundSize: `${strips.length * 100}% 100%`,
-                        backgroundPosition: `${strip.offsetPercent}% 0`,
-                        transitionDuration: `${stepDelay * 0.9}ms`,
-                      }}
-                    />
-                  )
-                })}
-              </div>
-            )}
+      <main className={`main-stage ${compareMode ? 'main-stage-compare' : ''}`}>
+        {isPreparing && (
+          <div className="preparing-overlay">
+            <div className="preparing-spinner" />
+            <span>계산 중...</span>
           </div>
+        )}
+        {imageSrc ? (
+          <>
+            <ErrorBoundary>
+              <StripVisualization
+                strips={mainVisualizationStrips}
+                imageSrc={imageSrc}
+                imageSize={imageSize}
+                isViewportLandscape={isViewportLandscape}
+                activeIndices={activeIndices}
+                stepDelay={stepDelay}
+                label={compareMode ? activeAlgorithm.name : undefined}
+              />
+            </ErrorBoundary>
+            {compareMode && imageSrc && (
+              <ErrorBoundary>
+                <StripVisualization
+                  strips={compareVisualizationStrips}
+                  imageSrc={imageSrc}
+                  imageSize={imageSize}
+                  isViewportLandscape={isViewportLandscape}
+                  activeIndices={compareActiveIndices}
+                  stepDelay={stepDelay}
+                  label={compareAlgorithm.name}
+                />
+              </ErrorBoundary>
+            )}
+          </>
         ) : (
           <div className="empty-state">
-            <p>이미지를 선택하여 정렬 시각화를 시작하세요</p>
+            <p>{t('empty')}</p>
           </div>
         )}
       </main>
+
+      {/* Step scrubber */}
+      {hasPrepared && !isSorting && sortSteps.length > 0 && (
+        <div className="step-scrubber">
+          <span className="step-scrubber-label">{t('controls.stepJump')}</span>
+          <input
+            type="range"
+            min={0}
+            max={sortSteps.length - 1}
+            value={currentStepIndex < 0 ? 0 : currentStepIndex}
+            onChange={(e) => handleStepJump(Number.parseInt(e.target.value, 10))}
+            className="step-scrubber-input"
+          />
+          <span className="step-scrubber-value">
+            {currentStepIndex < 0 ? 0 : currentStepIndex + 1} / {sortSteps.length}
+          </span>
+        </div>
+      )}
 
       <footer className="bottom-bar">
         <button
@@ -456,15 +568,15 @@ function App() {
           onClick={handleReset}
           disabled={isSorting}
         >
-          초기화
+          {t('controls.reset')}
         </button>
         <button
           type="button"
           className="control-btn control-btn-secondary"
           onClick={handlePrepare}
-          disabled={!imageSrc || isSorting}
+          disabled={!imageSrc || isSorting || isPreparing}
         >
-          조각내고 섞기
+          {isPreparing ? '준비 중...' : t('controls.shuffle')}
         </button>
         <button
           type="button"
@@ -472,7 +584,7 @@ function App() {
           onClick={handleStopSorting}
           disabled={!isSorting && !hasPrepared}
         >
-          정지
+          {t('controls.stop')}
         </button>
         <button
           type="button"
@@ -480,7 +592,7 @@ function App() {
           onClick={handleStartSorting}
           disabled={!hasPrepared || !sortSteps.length}
         >
-          {!isSorting ? '정렬 시작' : isPaused ? '계속' : '일시정지'}
+          {!isSorting ? t('controls.start') : isPaused ? t('controls.continue') : t('controls.pause')}
         </button>
       </footer>
 
@@ -509,6 +621,9 @@ function App() {
         setStepDelay={setStepDelay}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
+        pivotStrategy={pivotStrategy}
+        setPivotStrategy={setPivotStrategy}
+        algorithmId={algorithmId}
       />
 
       <ResultModal

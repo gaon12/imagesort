@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { PRESET_IMAGES } from '../constants'
-import type { ImageSourceType } from '../types'
+import type { ImageSourceType, QuickSortPivot, SortAlgorithmId } from '../types'
 
 type SettingsModalProps = {
   isOpen: boolean
@@ -19,6 +19,9 @@ type SettingsModalProps = {
   setStepDelay: (value: number) => void
   soundEnabled: boolean
   setSoundEnabled: (value: boolean) => void
+  pivotStrategy: QuickSortPivot
+  setPivotStrategy: (value: QuickSortPivot) => void
+  algorithmId: SortAlgorithmId
 }
 
 export const SettingsModal = ({
@@ -38,6 +41,9 @@ export const SettingsModal = ({
   setStepDelay,
   soundEnabled,
   setSoundEnabled,
+  pivotStrategy,
+  setPivotStrategy,
+  algorithmId,
 }: SettingsModalProps) => {
   const { t } = useTranslation()
 
@@ -175,6 +181,26 @@ export const SettingsModal = ({
               <span>효과음 켜기</span>
             </label>
           </div>
+
+          {algorithmId === 'quick' && (
+            <div className="setting-group">
+              <h3 className="setting-title">{t('settings.pivotStrategy')}</h3>
+              <div className="radio-row" style={{ flexWrap: 'wrap' }}>
+                {(['first', 'last', 'middle', 'random'] as const).map((strategy) => (
+                  <label key={strategy} className="radio-option">
+                    <input
+                      type="radio"
+                      name="pivot-strategy"
+                      value={strategy}
+                      checked={pivotStrategy === strategy}
+                      onChange={() => setPivotStrategy(strategy)}
+                    />
+                    <span>{t(`settings.pivot${strategy.charAt(0).toUpperCase() + strategy.slice(1)}`)}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="setting-group">
             <h3 className="setting-title">정보</h3>

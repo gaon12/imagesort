@@ -1,25 +1,41 @@
 import type { Strip, SortStep } from './types'
 
-export const generateQuickSortSteps = (items: Strip[]): SortStep[] => {
+export type QuickSortPivot = 'first' | 'last' | 'middle' | 'random'
+
+export const generateQuickSortSteps = (items: Strip[], pivotStrategy: QuickSortPivot = 'last'): SortStep[] => {
   const workingArray = [...items]
   const steps: SortStep[] = []
   let comparisons = 0
   let swaps = 0
 
+  const selectPivotIndex = (low: number, high: number): number => {
+    switch (pivotStrategy) {
+      case 'first': return low
+      case 'middle': return Math.floor((low + high) / 2)
+      case 'random': return low + Math.floor(Math.random() * (high - low + 1))
+      case 'last':
+      default: return high
+    }
+  }
+
   const partition = (low: number, high: number): number => {
+    // Move pivot to end
+    const pivotIdx = selectPivotIndex(low, high)
+    if (pivotIdx !== high) {
+      ;[workingArray[pivotIdx], workingArray[high]] = [workingArray[high], workingArray[pivotIdx]]
+      swaps += 1
+    }
+
     const pivot = workingArray[high].originalIndex
     let i = low - 1
 
-    // Pivot과 비교
     for (let j = low; j < high; j += 1) {
       comparisons += 1
-
-      // 비교 중인 요소 표시
       steps.push({
         array: [...workingArray],
         activeIndices: [j, high],
         comparisons,
-        swaps
+        swaps,
       })
 
       if (workingArray[j].originalIndex < pivot) {
@@ -27,28 +43,24 @@ export const generateQuickSortSteps = (items: Strip[]): SortStep[] => {
         if (i !== j) {
           ;[workingArray[i], workingArray[j]] = [workingArray[j], workingArray[i]]
           swaps += 1
-
-          // 교환 후 상태 표시
           steps.push({
             array: [...workingArray],
             activeIndices: [i, j],
             comparisons,
-            swaps
+            swaps,
           })
         }
       }
     }
 
-    // Pivot을 올바른 위치로 이동
     if (i + 1 !== high) {
       ;[workingArray[i + 1], workingArray[high]] = [workingArray[high], workingArray[i + 1]]
       swaps += 1
-
       steps.push({
         array: [...workingArray],
         activeIndices: [i + 1, high],
         comparisons,
-        swaps
+        swaps,
       })
     }
 
