@@ -38,6 +38,7 @@ export type SortAlgorithm = {
   description: string
   complexity: string
   tone: 'soft' | 'sharp'
+  isProbabilistic?: boolean
   generateSteps: (items: Strip[]) => SortStep[]
 }
 

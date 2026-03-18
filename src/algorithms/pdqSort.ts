@@ -12,17 +12,16 @@ export const generatePdqSortSteps = (items: Strip[]): SortStep[] => {
 
   const insertionSort = (low: number, high: number) => {
     for (let i = low + 1; i <= high; i++) {
-      const key = arr[i]
-      let j = i - 1
-      while (j >= low) {
+      let j = i
+      while (j > low) {
         comparisons++
-        steps.push({ array: [...arr], activeIndices: [j, j + 1], comparisons, swaps })
-        if (arr[j].originalIndex > key.originalIndex) {
-          arr[j + 1] = arr[j]; swaps++; j--
-        } else break
+        steps.push({ array: [...arr], activeIndices: [j - 1, j], comparisons, swaps })
+        if (arr[j - 1].originalIndex <= arr[j].originalIndex) break
+        ;[arr[j - 1], arr[j]] = [arr[j], arr[j - 1]]
+        swaps++
+        steps.push({ array: [...arr], activeIndices: [j - 1, j], comparisons, swaps })
+        j--
       }
-      arr[j + 1] = key
-      steps.push({ array: [...arr], activeIndices: [Math.max(low, j + 1), i], comparisons, swaps })
     }
   }
 

@@ -7,6 +7,12 @@ export const generateMergeSortSteps = (items: Strip[]): SortStep[] => {
   let comparisons = 0
   let swaps = 0
 
+  const buildMergePreview = (start: number, end: number): Strip[] => [
+    ...workingArray.slice(0, start),
+    ...bufferArray.slice(start, end + 1),
+    ...workingArray.slice(end + 1),
+  ]
+
   const mergeRange = (start: number, end: number) => {
     if (start >= end) return
 
@@ -65,7 +71,7 @@ export const generateMergeSortSteps = (items: Strip[]): SortStep[] => {
 
       // 병합된 부분 표시
       steps.push({
-        array: [...workingArray],
+        array: buildMergePreview(start, end),
         activeIndices: [i, i],
         comparisons,
         swaps

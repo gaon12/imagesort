@@ -47,25 +47,59 @@ function getFinalState(steps: SortStep[], input: Strip[]): Strip[] {
 
 type SortFn = (items: Strip[]) => SortStep[]
 
-const ALGORITHMS: Array<{ name: string; fn: SortFn }> = [
-  { name: 'Bubble Sort', fn: generateBubbleSortSteps },
-  { name: 'Quick Sort', fn: generateQuickSortSteps },
-  { name: 'Merge Sort', fn: generateMergeSortSteps },
-  { name: 'Heap Sort', fn: generateHeapSortSteps },
-  { name: 'Insertion Sort', fn: generateInsertionSortSteps },
-  { name: 'Selection Sort', fn: generateSelectionSortSteps },
-  { name: 'Shell Sort', fn: generateShellSortSteps },
-  { name: 'Cocktail Sort', fn: generateCocktailSortSteps },
-  { name: 'Tree Sort', fn: generateTreeSortSteps },
-  { name: 'Tim Sort', fn: generateTimSortSteps },
-  { name: 'Block Merge Sort', fn: generateBlockMergeSortSteps },
-  { name: 'Intro Sort', fn: generateIntroSortSteps },
-  { name: 'PDQ Sort', fn: generatePdqSortSteps },
-  { name: 'Radix Sort', fn: generateRadixSortSteps },
-  { name: 'Counting Sort', fn: generateCountingSortSteps },
-  { name: 'Sleep Sort', fn: generateSleepSortSteps },
-  { name: 'Gravity Sort', fn: generateGravitySortSteps },
-  { name: 'Stooge Sort', fn: generateStoogeSortSteps },
+function makeShuffledRange(size: number): Strip[] {
+  const order = Array.from({ length: size }, (_, index) => index)
+  for (let i = order.length - 1; i > 0; i -= 1) {
+    const j = (i * 7 + 3) % (i + 1)
+    ;[order[i], order[j]] = [order[j], order[i]]
+  }
+  return makeStrips(order)
+}
+
+function expectStepsToPreserveStripIdentity(steps: SortStep[], input: Strip[]) {
+  const expectedIds = new Set(input.map((strip) => strip.id))
+
+  for (const step of steps) {
+    expect(step.array.length).toBe(input.length)
+
+    const seenIds = new Set<number>()
+    for (const strip of step.array) {
+      expect(strip).toBeTruthy()
+      expect(expectedIds.has(strip.id)).toBe(true)
+      expect(seenIds.has(strip.id)).toBe(false)
+      seenIds.add(strip.id)
+    }
+
+    expect(seenIds.size).toBe(expectedIds.size)
+
+    if (step.activeIndices) {
+      expect(step.activeIndices[0]).toBeGreaterThanOrEqual(0)
+      expect(step.activeIndices[1]).toBeGreaterThanOrEqual(0)
+      expect(step.activeIndices[0]).toBeLessThan(step.array.length)
+      expect(step.activeIndices[1]).toBeLessThan(step.array.length)
+    }
+  }
+}
+
+const ALGORITHMS: Array<{ name: string; fn: SortFn; integritySize: number }> = [
+  { name: 'Bubble Sort', fn: generateBubbleSortSteps, integritySize: 20 },
+  { name: 'Quick Sort', fn: generateQuickSortSteps, integritySize: 64 },
+  { name: 'Merge Sort', fn: generateMergeSortSteps, integritySize: 64 },
+  { name: 'Heap Sort', fn: generateHeapSortSteps, integritySize: 64 },
+  { name: 'Insertion Sort', fn: generateInsertionSortSteps, integritySize: 20 },
+  { name: 'Selection Sort', fn: generateSelectionSortSteps, integritySize: 20 },
+  { name: 'Shell Sort', fn: generateShellSortSteps, integritySize: 40 },
+  { name: 'Cocktail Sort', fn: generateCocktailSortSteps, integritySize: 20 },
+  { name: 'Tree Sort', fn: generateTreeSortSteps, integritySize: 64 },
+  { name: 'Tim Sort', fn: generateTimSortSteps, integritySize: 64 },
+  { name: 'Block Merge Sort', fn: generateBlockMergeSortSteps, integritySize: 40 },
+  { name: 'Intro Sort', fn: generateIntroSortSteps, integritySize: 64 },
+  { name: 'PDQ Sort', fn: generatePdqSortSteps, integritySize: 64 },
+  { name: 'Radix Sort', fn: generateRadixSortSteps, integritySize: 64 },
+  { name: 'Counting Sort', fn: generateCountingSortSteps, integritySize: 64 },
+  { name: 'Sleep Sort', fn: generateSleepSortSteps, integritySize: 24 },
+  { name: 'Gravity Sort', fn: generateGravitySortSteps, integritySize: 24 },
+  { name: 'Stooge Sort', fn: generateStoogeSortSteps, integritySize: 10 },
 ]
 
 // Probabilistic algorithms (may not fully sort within step limit)
@@ -75,7 +109,7 @@ const PROBABILISTIC_ALGORITHMS: Array<{ name: string; fn: SortFn }> = [
 ]
 
 describe('Sorting Algorithms - Correctness', () => {
-  for (const { name, fn } of ALGORITHMS) {
+  for (const { name, fn, integritySize } of ALGORITHMS) {
     describe(name, () => {
       it('sorts a reversed array', () => {
         const input = makeStrips([7, 6, 5, 4, 3, 2, 1, 0])
@@ -121,6 +155,12 @@ describe('Sorting Algorithms - Correctness', () => {
           expect(step.comparisons).toBeGreaterThanOrEqual(0)
           expect(step.swaps).toBeGreaterThanOrEqual(0)
         }
+      })
+
+      it('preserves strip identity and bounds on realistic input sizes', () => {
+        const input = makeShuffledRange(integritySize)
+        const steps = fn(input)
+        expectStepsToPreserveStripIdentity(steps, input)
       })
 
       it('comparison count is non-decreasing through steps', () => {
@@ -171,6 +211,12 @@ describe('Probabilistic Algorithms - Structure', () => {
           expect(step).toHaveProperty('swaps')
           expect(Array.isArray(step.array)).toBe(true)
         }
+      })
+
+      it('preserves strip identity on small input', () => {
+        const input = makeStrips([2, 0, 1])
+        const steps = fn(input)
+        expectStepsToPreserveStripIdentity(steps, input)
       })
 
       it('handles empty array', () => {

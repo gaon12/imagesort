@@ -13,46 +13,54 @@ export const generateTimSortSteps = (items: Strip[]): SortStep[] => {
   // Insertion sort a run from left to right
   const insertionSortRun = (left: number, right: number) => {
     for (let i = left + 1; i <= right; i++) {
-      const key = arr[i]
-      let j = i - 1
-      while (j >= left) {
+      let j = i
+      while (j > left) {
         comparisons++
         steps.push({
           array: [...arr],
-          activeIndices: [j, j + 1],
+          activeIndices: [j - 1, j],
           comparisons,
           swaps,
         })
-        if (arr[j].originalIndex > key.originalIndex) {
-          arr[j + 1] = arr[j]
-          swaps++
-          j--
-        } else {
+        if (arr[j - 1].originalIndex <= arr[j].originalIndex) {
           break
         }
-      }
-      arr[j + 1] = key
-      if (j + 1 !== i) {
+        ;[arr[j - 1], arr[j]] = [arr[j], arr[j - 1]]
+        swaps++
         steps.push({
           array: [...arr],
-          activeIndices: [j + 1, i],
+          activeIndices: [j - 1, j],
           comparisons,
           swaps,
         })
+        j--
       }
     }
   }
 
   // Merge two sorted halves [left..mid] and [mid+1..right]
   const merge = (left: number, mid: number, right: number) => {
+    const mergeStart = left
+    const mergeEnd = right
     const leftPart = arr.slice(left, mid + 1)
     const rightPart = arr.slice(mid + 1, right + 1)
     let i = 0, j = 0, k = left
+
+    const buildMergePreview = () => [
+      ...arr.slice(0, mergeStart),
+      ...arr.slice(mergeStart, k),
+      ...leftPart.slice(i),
+      ...rightPart.slice(j),
+      ...arr.slice(mergeEnd + 1),
+    ]
+
     while (i < leftPart.length && j < rightPart.length) {
+      const leftIndex = k
+      const rightIndex = k + (leftPart.length - i)
       comparisons++
       steps.push({
-        array: [...arr],
-        activeIndices: [left + i, mid + 1 + j],
+        array: buildMergePreview(),
+        activeIndices: [leftIndex, rightIndex],
         comparisons,
         swaps,
       })
@@ -64,14 +72,33 @@ export const generateTimSortSteps = (items: Strip[]): SortStep[] => {
       }
       k++
       steps.push({
-        array: [...arr],
+        array: buildMergePreview(),
         activeIndices: [k - 1, k - 1],
         comparisons,
         swaps,
       })
     }
-    while (i < leftPart.length) { arr[k++] = leftPart[i++] }
-    while (j < rightPart.length) { arr[k++] = rightPart[j++] }
+
+    while (i < leftPart.length) {
+      arr[k++] = leftPart[i++]
+      steps.push({
+        array: buildMergePreview(),
+        activeIndices: [k - 1, k - 1],
+        comparisons,
+        swaps,
+      })
+    }
+
+    while (j < rightPart.length) {
+      arr[k++] = rightPart[j++]
+      steps.push({
+        array: buildMergePreview(),
+        activeIndices: [k - 1, k - 1],
+        comparisons,
+        swaps,
+      })
+    }
+
     steps.push({
       array: [...arr],
       activeIndices: [left, right],

@@ -38,12 +38,11 @@ export const generateRadixSortSteps = (items: Strip[]): SortStep[] => {
 
     // Copy back and show each placement
     for (let i = 0; i < n; i++) {
-      const oldIdx = arr.findIndex(s => s.id === output[i].id)
       if (arr[i].id !== output[i].id) {
         swaps++
         steps.push({
-          array: [...output.slice(0, i + 1), ...arr.slice(i + 1)],
-          activeIndices: [Math.min(oldIdx, i), Math.max(oldIdx, i)],
+          array: [...output],
+          activeIndices: [i, i],
           comparisons,
           swaps,
         })

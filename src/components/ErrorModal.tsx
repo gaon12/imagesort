@@ -9,10 +9,10 @@ export const ErrorModal = ({ isOpen, onClose, errorMessage }: ErrorModalProps) =
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label="오류" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">오류</h2>
-          <button className="modal-close" type="button" onClick={onClose}>
+          <button className="modal-close" type="button" aria-label="닫기" onClick={onClose}>
             x
           </button>
         </div>

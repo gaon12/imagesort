@@ -1,16 +1,26 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatMilliseconds } from '../utils'
-import type { SortAlgorithm, Strip } from '../types'
+import type { ImageSourceType, SortAlgorithm, Strip } from '../types'
+
+type CompareResult = {
+  algorithm: SortAlgorithm
+  totalComparisons: number
+  totalSwaps: number
+}
 
 type ResultModalProps = {
   isOpen: boolean
   onClose: () => void
   algorithm: SortAlgorithm
   strips: Strip[]
+  stripCount?: number
   elapsedMilliseconds: number
   totalComparisons: number
   totalSwaps: number
+  compareResult?: CompareResult | null
+  imageSourceType?: ImageSourceType
+  selectedPresetId?: string
   imageSrc: string | null
 }
 
@@ -19,15 +29,21 @@ export const ResultModal = ({
   onClose,
   algorithm,
   strips,
+  stripCount,
   elapsedMilliseconds,
   totalComparisons,
   totalSwaps,
+  compareResult,
+  imageSourceType,
+  selectedPresetId,
   imageSrc,
 }: ResultModalProps) => {
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const imageRef = useRef<HTMLImageElement>(null)
+  const effectiveStripCount = stripCount ?? strips.length
+  const comparisonLabel = algorithm.isProbabilistic ? t('result.runComparisons') : t('result.comparisons')
+  const swapLabel = algorithm.isProbabilistic ? t('result.runSwaps') : t('result.swaps')
 
   const handleExport = useCallback(async () => {
     setExporting(true)
@@ -36,8 +52,11 @@ export const ResultModal = ({
       const dpr = window.devicePixelRatio || 1
       const width = 600
       const statsHeight = 200
+      const maxImageWidth = width - 48
+      const maxImageHeight = 280
 
       let imgHeight = 0
+      let imgWidth = 0
       let imgElement: HTMLImageElement | null = null
 
       if (imageSrc) {
@@ -45,7 +64,13 @@ export const ResultModal = ({
           const img = new Image()
           img.crossOrigin = 'anonymous'
           img.onload = () => {
-            imgHeight = Math.min(280, Math.round((img.naturalHeight / img.naturalWidth) * width))
+            const scale = Math.min(
+              maxImageWidth / img.naturalWidth,
+              maxImageHeight / img.naturalHeight,
+              1,
+            )
+            imgWidth = Math.round(img.naturalWidth * scale)
+            imgHeight = Math.round(img.naturalHeight * scale)
             imgElement = img
             resolve()
           }
@@ -76,8 +101,8 @@ export const ResultModal = ({
       // Stats boxes
       const stats = [
         { label: '실제 시간', value: formatMilliseconds(elapsedMilliseconds) },
-        { label: '총 비교 횟수', value: totalComparisons.toLocaleString() },
-        { label: '총 스왑/쓰기', value: totalSwaps.toLocaleString() },
+        { label: algorithm.isProbabilistic ? '이번 실행 비교 횟수' : '총 비교 횟수', value: totalComparisons.toLocaleString() },
+        { label: algorithm.isProbabilistic ? '이번 실행 스왑/쓰기' : '총 스왑/쓰기', value: totalSwaps.toLocaleString() },
       ]
 
       const boxW = (width - 48 - 16) / 3
@@ -101,11 +126,14 @@ export const ResultModal = ({
       // Complexity
       ctx.fillStyle = 'rgba(255,255,255,0.5)'
       ctx.font = '13px system-ui, sans-serif'
-      ctx.fillText(algorithm.complexity + ' • ' + strips.length + ' strips', 24, 185)
+      ctx.fillText(algorithm.complexity + ' • ' + effectiveStripCount + ' strips', 24, 185)
 
       // Image
       if (imgElement && imgHeight > 0) {
-        ctx.drawImage(imgElement, 24, statsHeight, width - 48, imgHeight)
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        const imageX = Math.round((width - imgWidth) / 2)
+        ctx.drawImage(imgElement, imageX, statsHeight, imgWidth, imgHeight)
       }
 
       // Download
@@ -116,16 +144,33 @@ export const ResultModal = ({
     } finally {
       setExporting(false)
     }
-  }, [algorithm, strips, elapsedMilliseconds, totalComparisons, totalSwaps, imageSrc])
+  }, [algorithm, effectiveStripCount, elapsedMilliseconds, totalComparisons, totalSwaps, imageSrc])
 
   const handleCopyLink = useCallback(async () => {
     const params = new URLSearchParams({
       algo: algorithm.id,
-      strips: String(strips.length),
+      strips: String(effectiveStripCount),
       comparisons: String(totalComparisons),
       swaps: String(totalSwaps),
       time: String(Math.round(elapsedMilliseconds)),
     })
+
+    if (compareResult) {
+      params.set('compareAlgo', compareResult.algorithm.id)
+      params.set('compareComparisons', String(compareResult.totalComparisons))
+      params.set('compareSwaps', String(compareResult.totalSwaps))
+    }
+
+    if (imageSourceType === 'preset' && selectedPresetId) {
+      params.set('source', 'preset')
+      params.set('preset', selectedPresetId)
+    } else if (imageSourceType === 'url' && imageSrc) {
+      params.set('source', 'url')
+      params.set('imageUrl', imageSrc)
+    } else if (imageSourceType === 'upload') {
+      params.set('source', 'upload')
+    }
+
     const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`
     try {
       await navigator.clipboard.writeText(url)
@@ -142,36 +187,92 @@ export const ResultModal = ({
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     }
-  }, [algorithm, strips, elapsedMilliseconds, totalComparisons, totalSwaps])
+  }, [algorithm, compareResult, effectiveStripCount, elapsedMilliseconds, imageSourceType, imageSrc, selectedPresetId, totalComparisons, totalSwaps])
+
+  const renderStatsSection = (
+    sectionLabel: string,
+    sectionAlgorithm: SortAlgorithm,
+    comparisons: number,
+    swaps: number,
+  ) => {
+    const sectionComparisonLabel = sectionAlgorithm.isProbabilistic
+      ? t('result.runComparisons')
+      : t('result.comparisons')
+    const sectionSwapLabel = sectionAlgorithm.isProbabilistic
+      ? t('result.runSwaps')
+      : t('result.swaps')
+
+    return (
+      <section className="compare-result-card">
+        <div className="compare-result-header">
+          <span className="compare-result-label">{sectionLabel}</span>
+          <strong className="compare-result-name">{sectionAlgorithm.name}</strong>
+        </div>
+        <div className="modal-stats modal-stats-compact">
+          <div className="stat-item">
+            <div className="stat-label">{sectionComparisonLabel}</div>
+            <div className="stat-value">{comparisons.toLocaleString()}</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-label">{sectionSwapLabel}</div>
+            <div className="stat-value">{swaps.toLocaleString()}</div>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   if (!isOpen) return null
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={t('result.title')} onClick={(e) => e.stopPropagation()}>
         <h2 className="modal-title">{t('result.title')}</h2>
         <p className="modal-text">
-          {t('result.message', { algorithm: algorithm.name, count: strips.length })}
+          {compareResult
+            ? t('result.compareMessage', { primary: algorithm.name, secondary: compareResult.algorithm.name })
+            : t('result.message', { algorithm: algorithm.name, count: effectiveStripCount })}
         </p>
 
-        <div className="modal-stats">
-          <div className="stat-item">
-            <div className="stat-label">{t('result.actualTime')}</div>
-            <div className="stat-value">{formatMilliseconds(elapsedMilliseconds)}</div>
+        {compareResult ? (
+          <>
+            <div className="modal-stats modal-stats-single">
+              <div className="stat-item">
+                <div className="stat-label">{t('result.actualTime')}</div>
+                <div className="stat-value">{formatMilliseconds(elapsedMilliseconds)}</div>
+              </div>
+            </div>
+
+            <div className="compare-result-grid">
+              {renderStatsSection(t('result.primaryAlgorithm'), algorithm, totalComparisons, totalSwaps)}
+              {renderStatsSection(
+                t('result.compareAlgorithm'),
+                compareResult.algorithm,
+                compareResult.totalComparisons,
+                compareResult.totalSwaps,
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="modal-stats">
+            <div className="stat-item">
+              <div className="stat-label">{t('result.actualTime')}</div>
+              <div className="stat-value">{formatMilliseconds(elapsedMilliseconds)}</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-label">{comparisonLabel}</div>
+              <div className="stat-value">{totalComparisons.toLocaleString()}</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-label">{swapLabel}</div>
+              <div className="stat-value">{totalSwaps.toLocaleString()}</div>
+            </div>
           </div>
-          <div className="stat-item">
-            <div className="stat-label">{t('result.comparisons')}</div>
-            <div className="stat-value">{totalComparisons.toLocaleString()}</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-label">{t('result.swaps')}</div>
-            <div className="stat-value">{totalSwaps.toLocaleString()}</div>
-          </div>
-        </div>
+        )}
 
         {imageSrc && (
           <div className="modal-image-wrapper">
-            <img ref={imageRef} src={imageSrc} alt="Sorted result" className="modal-image" />
+            <img src={imageSrc} alt="Sorted result" className="modal-image" />
           </div>
         )}
 

@@ -51,10 +51,16 @@ export const SettingsModal = ({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('settings.title')}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
-          <h2 className="modal-title">설정</h2>
-          <button className="modal-close" onClick={onClose}>
+          <h2 className="modal-title">{t('settings.title')}</h2>
+          <button className="modal-close" type="button" aria-label={t('result.close')} onClick={onClose}>
             ✕
           </button>
         </div>
@@ -132,8 +138,8 @@ export const SettingsModal = ({
                     }
                   }}
                 />
-                <button className="apply-btn" onClick={onApplyUrl}>
-                  적용
+                <button className="apply-btn" type="button" onClick={onApplyUrl}>
+                  {t('settings.apply')}
                 </button>
               </div>
             )}
@@ -151,6 +157,7 @@ export const SettingsModal = ({
                 min={8}
                 max={160}
                 value={stripCount}
+                aria-label={t('settings.stripCount')}
                 onChange={(e) => setStripCount(Number.parseInt(e.target.value, 10))}
               />
             </div>
@@ -165,6 +172,7 @@ export const SettingsModal = ({
                 min={8}
                 max={80}
                 value={stepDelay}
+                aria-label={t('settings.speed')}
                 onChange={(e) => setStepDelay(Number.parseInt(e.target.value, 10))}
               />
             </div>

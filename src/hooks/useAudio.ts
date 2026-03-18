@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react'
 import type { SortAlgorithm } from '../types'
 
-export const useAudio = (soundEnabled: boolean, activeAlgorithm: SortAlgorithm) => {
+export const useAudio = (soundEnabled: boolean) => {
   const audioContextRef = useRef<AudioContext | null>(null)
 
   const ensureAudioContext = () => {
@@ -18,14 +18,14 @@ export const useAudio = (soundEnabled: boolean, activeAlgorithm: SortAlgorithm) 
     return audioContextRef.current
   }
 
-  const playStepSound = (valueRatio: number) => {
+  const playStepSound = (valueRatio: number, algorithm: SortAlgorithm) => {
     const ctx = ensureAudioContext()
     if (!ctx) return
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
-    const baseFreq = activeAlgorithm.tone === 'sharp' ? 400 : 200
-    const range = activeAlgorithm.tone === 'sharp' ? 900 : 600
-    osc.type = activeAlgorithm.tone === 'sharp' ? 'square' : 'sine'
+    const baseFreq = algorithm.tone === 'sharp' ? 400 : 200
+    const range = algorithm.tone === 'sharp' ? 900 : 600
+    osc.type = algorithm.tone === 'sharp' ? 'square' : 'sine'
     osc.frequency.value = baseFreq + valueRatio * range
     osc.connect(gain)
     gain.connect(ctx.destination)

@@ -17,6 +17,7 @@ const resources = {
         continue: '계속',
         stepJump: '스텝 이동',
         compareMode: '비교 모드',
+        toggleTheme: '테마 전환',
         exportResult: '결과 내보내기',
         copyLink: '링크 복사',
         copied: '복사됨!',
@@ -74,7 +75,7 @@ const resources = {
       algorithm: {
         title: '알고리즘 설명',
         help: '알고리즘 설명',
-        intro: '지금 선택된 알고리즘은 <strong>{name}</strong> 입니다. 아래 순서를 천천히 따라보면 어떻게 이미지를 정렬하는지 쉽게 이해할 수 있어요.',
+        intro: '지금 선택된 알고리즘은 <strong>{{name}}</strong> 입니다. 아래 순서를 천천히 따라보면 어떻게 이미지를 정렬하는지 쉽게 이해할 수 있어요.',
         complexity: '시간 복잡도',
         understand: '이해했어요',
         prev: '이전',
@@ -171,10 +172,15 @@ const resources = {
       },
       result: {
         title: '정렬 완료!',
-        message: '{algorithm}로 {count}개의 조각을 정렬했습니다.',
+        message: '{{algorithm}}로 {{count}}개의 조각을 정렬했습니다.',
+        compareMessage: '{{primary}}와 {{secondary}} 비교를 완료했습니다.',
         actualTime: '실제 시간',
         comparisons: '총 비교 횟수',
         swaps: '총 스왑/쓰기',
+        runComparisons: '이번 실행 비교 횟수',
+        runSwaps: '이번 실행 스왑/쓰기',
+        primaryAlgorithm: '기준 알고리즘',
+        compareAlgorithm: '비교 알고리즘',
         close: '닫기',
       },
       error: {
@@ -188,6 +194,9 @@ const resources = {
       status: {
         progress: 'Progress',
         time: 'Time',
+        comparisons: '비교',
+        swaps: '스왑',
+        unknownTotal: '?',
       },
       presets: {
         favicon: '파비콘 샘플',
@@ -211,6 +220,7 @@ const resources = {
         continue: 'Continue',
         stepJump: 'Jump to Step',
         compareMode: 'Compare Mode',
+        toggleTheme: 'Toggle Theme',
         exportResult: 'Export Result',
         copyLink: 'Copy Link',
         copied: 'Copied!',
@@ -268,7 +278,7 @@ const resources = {
       algorithm: {
         title: 'Algorithm Explanation',
         help: 'Algorithm Info',
-        intro: 'The selected algorithm is <strong>{name}</strong>. Follow the steps below to understand how it sorts the image.',
+        intro: 'The selected algorithm is <strong>{{name}}</strong>. Follow the steps below to understand how it sorts the image.',
         complexity: 'Time Complexity',
         understand: 'Got it',
         prev: 'Previous',
@@ -365,10 +375,15 @@ const resources = {
       },
       result: {
         title: 'Sorting Complete!',
-        message: 'Sorted {count} strips using {algorithm}.',
+        message: 'Sorted {{count}} strips using {{algorithm}}.',
+        compareMessage: 'Finished comparing {{primary}} and {{secondary}}.',
         actualTime: 'Actual Time',
         comparisons: 'Total Comparisons',
         swaps: 'Total Swaps/Writes',
+        runComparisons: 'Comparisons This Run',
+        runSwaps: 'Swaps/Writes This Run',
+        primaryAlgorithm: 'Primary Algorithm',
+        compareAlgorithm: 'Compared Algorithm',
         close: 'Close',
       },
       error: {
@@ -382,6 +397,9 @@ const resources = {
       status: {
         progress: 'Progress',
         time: 'Time',
+        comparisons: 'Comp',
+        swaps: 'Swap',
+        unknownTotal: '?',
       },
       presets: {
         favicon: 'Favicon Sample',

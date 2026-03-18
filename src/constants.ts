@@ -51,8 +51,8 @@ export const SORT_ALGORITHMS: SortAlgorithm[] = [
   { id: 'sleep', name: 'Sleep Sort', description: '값 비례 지연 정렬', complexity: 'O(max)', tone: 'soft', generateSteps: generateSleepSortSteps },
   { id: 'gravity', name: 'Gravity Sort', description: '구슬 낙하 정렬', complexity: 'O(S)', tone: 'soft', generateSteps: generateGravitySortSteps },
   { id: 'stooge', name: 'Stooge Sort', description: '3분할 재귀 정렬', complexity: 'O(n^2.7)', tone: 'soft', generateSteps: generateStoogeSortSteps },
-  { id: 'bogo', name: 'Bogo Sort', description: '무작위 셔플 정렬', complexity: 'O(n·n!)', tone: 'soft', generateSteps: generateBogoSortSteps },
-  { id: 'bogobogo', name: 'BogoBogo Sort', description: '재귀적 보고 정렬', complexity: 'O((n+1)!)', tone: 'soft', generateSteps: generateBogoBogSortSteps },
+  { id: 'bogo', name: 'Bogo Sort', description: '무작위 셔플 정렬', complexity: 'O(n·n!)', tone: 'soft', isProbabilistic: true, generateSteps: generateBogoSortSteps },
+  { id: 'bogobogo', name: 'BogoBogo Sort', description: '재귀적 보고 정렬', complexity: 'O((n+1)!)', tone: 'soft', isProbabilistic: true, generateSteps: generateBogoBogSortSteps },
 ]
 
 export const QUICK_SORT_PIVOT_STORAGE_KEY = 'image-sort-studio-pivot'
